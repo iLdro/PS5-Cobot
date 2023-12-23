@@ -18,7 +18,7 @@ jobs:
     - name: Check if local branch is behind release
       run: |
         git fetch --prune
-        LOCAL_BRANCH=main  # Remplacez par le nom de votre branche locale
+        LOCAL_BRANCH=main  # Replace with the name of your local branch
         REMOTE_BRANCH=origin/release
         if [[ $(git rev-parse HEAD) == $(git rev-parse $REMOTE_BRANCH) ]]; then
           echo "Local branch is up-to-date with $REMOTE_BRANCH"
@@ -41,6 +41,7 @@ jobs:
         git pull origin main
         git branch --set-upstream-to=origin/main main
         git push origin main
+      if: failure()
 
     - name: Merge main into hotfix
       run: |
@@ -48,6 +49,7 @@ jobs:
         git pull origin hotfix
         git merge origin/main --no-edit
         git push origin hotfix
+      if: failure()
 
     - name: Protect hotfix branch
       run: |
@@ -55,10 +57,12 @@ jobs:
         git pull origin hotfix
         git branch --set-upstream-to=origin/hotfix hotfix
         git push origin hotfix
+      if: failure()
 
     - name: Protect release branch
       run: |
-        git checkout release
+        git checkout release  
         git pull origin release
         git branch --set-upstream-to=origin/release release
         git push origin release
+      if: failure()
