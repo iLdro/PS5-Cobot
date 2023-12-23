@@ -1,0 +1,64 @@
+name: Branch Protection
+
+on:
+  push:
+    branches:
+      - main
+      - hotfix
+      - release
+
+jobs:
+  protect-branches:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Check if local branch is behind release
+      run: |
+        git fetch --prune
+        LOCAL_BRANCH=main  # Remplacez par le nom de votre branche locale
+        REMOTE_BRANCH=origin/release
+        if [[ $(git rev-parse HEAD) == $(git rev-parse $REMOTE_BRANCH) ]]; then
+          echo "Local branch is up-to-date with $REMOTE_BRANCH"
+        else
+          echo "Local branch is behind $REMOTE_BRANCH. Please pull changes before pushing."
+          exit 1
+        fi
+
+    - name: Check if pull request is from release branch
+      run: |
+        SOURCE_BRANCH=$(jq -r ".pull_request.head.ref" "$GITHUB_EVENT_PATH")
+        if [[ "$SOURCE_BRANCH" != "release"* ]]; then
+          echo "Error: Pull requests to main must come from the release branch."
+          exit 1
+        fi
+
+    - name: Protect main branch
+      run: |
+        git checkout main
+        git pull origin main
+        git branch --set-upstream-to=origin/main main
+        git push origin main
+
+    - name: Merge main into hotfix
+      run: |
+        git checkout hotfix
+        git pull origin hotfix
+        git merge origin/main --no-edit
+        git push origin hotfix
+
+    - name: Protect hotfix branch
+      run: |
+        git checkout hotfix
+        git pull origin hotfix
+        git branch --set-upstream-to=origin/hotfix hotfix
+        git push origin hotfix
+
+    - name: Protect release branch
+      run: |
+        git checkout release
+        git pull origin release
+        git branch --set-upstream-to=origin/release release
+        git push origin release
